@@ -1,0 +1,105 @@
+from enum import Enum
+from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+from app.utils.string.string_utils import parse_int, parse_float, parse_datetime, parse_list, extract_value
+
+DOC_DETAIL_FIELDS = [
+    "CoreField.Title",
+    "CoreField.Identifier",
+    "CoreField.DocSubType",
+]
+
+
+class DocumentDetail(BaseModel):
+    """Minimal document model for Link Search API results (any doc type, not just tasks)."""
+
+    title: str = ""
+    identifier: str = ""
+    doc_sub_type: str = ""
+
+    @staticmethod
+    def from_api_response(data: dict) -> "DocumentDetail":
+        """Construct a DocumentDetail from a Link Search API item dict."""
+        return DocumentDetail(
+            title=data.get("CoreField.Title", ""),
+            identifier=data.get("CoreField.Identifier", ""),
+            doc_sub_type=(data.get("CoreField.DocSubType") or "").strip(),
+        )
+
+
+TASK_DETAIL_FIELDS = [
+    "CoreField.Title",
+    "CoreField.Identifier",
+    "CoreField.DocSubType",
+    "CoreField.Status",
+    "Document.TimeSpentMn",
+    "Document.TimeLeftMn",
+    "AssignedTo",
+    "dev.Main-dev-team",
+    "Document.CurrentEstimatedCompletionDate",
+    "Document.CortexShareLinkRaw",
+    "product.Importance-for-next-release",
+    "Document.Dependencies",
+    "Document.CurrentEstimatedStartDate",
+    "Document.CurrentEstimatedEndDate",
+    "Completiondate",
+    "ParentFolderIdentifier",
+    "link.Product-Module",
+    "dev.Complexity",
+]
+
+class SetMonitorRequest(BaseModel):
+    monitor: bool
+
+
+class SetAuthTokenRequest(BaseModel):
+    token: str
+
+
+class TaskDetail(BaseModel):
+    """Task detail model mapped from Link Search API response fields."""
+    title: str = ""
+    identifier: str = ""
+    doc_sub_type: str = ""
+    status: str = ""
+    time_spent_mn: int = 0
+    time_left_mn: int = 0
+    assigned_to: str = ""
+    main_dev_team: list[str] = Field(default_factory=list)
+    estimated_completion_date: Optional[datetime] = None
+    cortex_share_link: str = ""
+    importance_for_next_release: str = ""
+    dependencies: list[str] = []
+    estimated_start_date: Optional[datetime] = None
+    estimated_end_date: Optional[datetime] = None
+    completion_date: Optional[datetime] = None
+    parent_folder_identifier: str = ""
+    monitor: bool = False
+    module: str = ""
+    complexity: Optional[float] = None
+
+    @staticmethod
+    def from_api_response(data: dict) -> "TaskDetail":
+        """Construct a TaskDetail from a Link Search API item dict."""
+        return TaskDetail(
+            title=data.get("CoreField.Title", ""),
+            identifier=data.get("CoreField.Identifier", ""),
+            doc_sub_type=(data.get("CoreField.DocSubType") or "").strip(),
+            status=(data.get("CoreField.Status") or "").strip(),
+            time_spent_mn=parse_int(data.get("Document.TimeSpentMn", "0")),
+            time_left_mn=parse_int(data.get("Document.TimeLeftMn", "0")),
+            assigned_to=(data.get("AssignedTo") or "").strip(),
+            main_dev_team=[extract_value(item) for item in data.get("dev.Main-dev-team", []) if extract_value(item)],
+            estimated_completion_date=parse_datetime(data.get("Document.CurrentEstimatedCompletionDate")),
+            cortex_share_link=data.get("Document.CortexShareLinkRaw", ""),
+            importance_for_next_release=extract_value(data.get("product.Importance-for-next-release", "")),
+            dependencies=parse_list(data.get("Document.Dependencies", "")),
+            estimated_start_date=parse_datetime(data.get("Document.CurrentEstimatedStartDate")),
+            estimated_end_date=parse_datetime(data.get("Document.CurrentEstimatedEndDate")),
+            completion_date=parse_datetime(data.get("Completiondate")),
+            parent_folder_identifier=data.get("ParentFolderIdentifier", ""),
+            module=extract_value(data.get("link.Product-Module", "")),
+            complexity=parse_float(data.get("dev.Complexity", "0.0")),
+        )
