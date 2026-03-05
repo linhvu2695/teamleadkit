@@ -5,7 +5,12 @@ A local dashboard that connects to Orange Logic Link to give you visibility into
 ## What You Get
 
 - **Work view** — monitor tasks in hierarchy, Kanban, Gantt, burndown, and participant breakdown views
+
+![Work View](public/WorkView01.png)
+
 - **Team view** — see incomplete and completed tasks across all team members with charts and filters
+
+![Team View](public/TeamView01.png)
 
 Everything runs on your machine. No Docker, no database servers, no DevOps required.
 
