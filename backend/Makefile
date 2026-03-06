@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 REQUIRED_PYTHON_MINOR := 11
 
 .PHONY: run setup check-python
