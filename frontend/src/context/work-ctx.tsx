@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { BASE_URL } from "@/App";
+import { fetchWithLinkAuth } from "@/lib/work-api";
 import { toaster } from "@/components/ui/toaster";
 import type { TaskDetail } from "@/components/work/work-types";
 import { DEFAULT_DOC_SUB_TYPE_FILTER } from "@/components/work/work-utils";
@@ -91,7 +92,7 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const loadMonitored = async () => {
             try {
-                const res = await fetch(`${BASE_URL}/api/work/monitored`);
+                const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/monitored`);
                 if (!res.ok) return;
                 const data: TaskDetail[] = await res.json();
                 setMonitoredTasks(data);
@@ -105,7 +106,7 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const loadCompleteStatuses = async () => {
             try {
-                const res = await fetch(`${BASE_URL}/api/work/complete-statuses`);
+                const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/complete-statuses`);
                 if (!res.ok) return;
                 const data: string[] = await res.json();
                 setCompleteStatuses(new Set(data.map((s) => s.toLowerCase())));
@@ -120,8 +121,8 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
         setIsLoadingTree(true);
         try {
             const [rootRes, descRes] = await Promise.all([
-                fetch(`${BASE_URL}/api/work/task/${taskId}`),
-                fetch(`${BASE_URL}/api/work/task/${taskId}/descendants`),
+                fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}`),
+                fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}/descendants`),
             ]);
 
             if (!rootRes.ok) throw new Error("Failed to fetch root task");
@@ -145,11 +146,11 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
 
         setIsAdding(true);
         try {
-            const rootRes = await fetch(`${BASE_URL}/api/work/task/${taskId}?force_refresh=${forceRefresh}`);
+            const rootRes = await fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}?force_refresh=${forceRefresh}`);
             if (!rootRes.ok) throw new Error("Failed to fetch task");
             const rootTask: TaskDetail = await rootRes.json();
 
-            await fetch(`${BASE_URL}/api/work/task/${rootTask.identifier}/monitor`, {
+            await fetchWithLinkAuth(`${BASE_URL}/api/work/task/${rootTask.identifier}/monitor`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ monitor: true }),
@@ -183,8 +184,8 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
         setIsLoadingTree(true);
         try {
             const [rootRes, descRes] = await Promise.all([
-                fetch(`${BASE_URL}/api/work/task/${taskId}?force_refresh=true`),
-                fetch(`${BASE_URL}/api/work/task/${taskId}/descendants?force_refresh=true`),
+                fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}?force_refresh=true`),
+                fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}/descendants?force_refresh=true`),
             ]);
 
             if (!rootRes.ok) throw new Error("Failed to refresh root task");
@@ -212,7 +213,7 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
 
     const removeTask = useCallback(async (taskId: string) => {
         try {
-            await fetch(`${BASE_URL}/api/work/task/${taskId}/monitor`, {
+            await fetchWithLinkAuth(`${BASE_URL}/api/work/task/${taskId}/monitor`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ monitor: false }),

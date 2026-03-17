@@ -21,6 +21,7 @@ import type { MemberWorkload } from "./team-types";
 import { MEMBER_COLORS, memberTaskCount, memberTimeSpentMn, memberTimeLeftMn } from "./team-types";
 import { getModulePieData } from "./team-utils";
 import { BASE_URL } from "@/App";
+import { fetchWithLinkAuth } from "@/lib/work-api";
 
 export type IncompleteViewMode = "work_queue" | "emergency_stream";
 
@@ -45,7 +46,7 @@ export const TeamIncompleteTasksContent = ({
     const fetchEmergencyWorkload = useCallback(async () => {
         setEmergencyLoading(true);
         try {
-            const res = await fetch(`${BASE_URL}/api/work/team/emergency`);
+            const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/team/emergency`);
             if (res.ok) {
                 const results = await res.json();
                 setEmergencyWorkload(results);
