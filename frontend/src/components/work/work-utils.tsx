@@ -119,7 +119,8 @@ export const statusColor = (status: string): string => {
         s.includes("closed") ||
         s.includes("validated") ||
         s.includes("approved") || 
-        s.includes("answered")
+        s.includes("answered") ||
+        s.includes("submitted")
     )
         return "green";
     if (s.includes("in progress") || s.includes("in development")) return "orange";
