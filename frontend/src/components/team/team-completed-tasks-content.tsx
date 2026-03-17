@@ -268,8 +268,12 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                                 />
                             </HStack>
                         )}
-                        {selectedMemberData && (
+
+                        {/* Selected Member Data */}
+                        {selectedMemberData && chartMode !== "git" && (
                             <HStack align="start" gap={6} wrap="wrap">
+
+                                {/* Module Breakdown Donut Chart */}
                                 {modulePieData.length > 0 && (
                                     <VStack gap={2} align="center">
                                         <Text fontSize="sm" fontWeight="semibold" color="fg.muted">
@@ -287,6 +291,8 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                                         />
                                     </VStack>
                                 )}
+
+                                {/* Task List */}
                                 <Box flex={1} minW="280px">
                                     <TeamMemberTaskList
                                         memberData={selectedMemberData}
