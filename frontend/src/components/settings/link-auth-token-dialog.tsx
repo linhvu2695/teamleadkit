@@ -8,8 +8,8 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
+import { setStoredLinkAuthToken } from "@/lib/work-api";
 
 interface LinkAuthTokenDialogProps {
     isOpen: boolean;
@@ -18,29 +18,16 @@ interface LinkAuthTokenDialogProps {
 
 export const LinkAuthTokenDialog = ({ isOpen, onClose }: LinkAuthTokenDialogProps) => {
     const [token, setToken] = useState("");
-    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         if (!token.trim()) {
             toaster.create({ description: "Token is required", type: "error" });
             return;
         }
-        setLoading(true);
-        try {
-            const res = await fetch(`${BASE_URL}/api/work/auth-token`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: token.trim() }),
-            });
-            if (!res.ok) throw new Error("Failed to set token");
-            toaster.create({ description: "Link auth token updated", type: "success" });
-            setToken("");
-            onClose();
-        } catch (err) {
-            toaster.create({ description: "Failed to set auth token", type: "error" });
-        } finally {
-            setLoading(false);
-        }
+        setStoredLinkAuthToken(token.trim());
+        toaster.create({ description: "Link auth token saved", type: "success" });
+        setToken("");
+        onClose();
     };
 
     return (
@@ -70,7 +57,7 @@ export const LinkAuthTokenDialog = ({ isOpen, onClose }: LinkAuthTokenDialogProp
                             <Button variant="outline" onClick={onClose}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleSubmit} loading={loading}>
+                            <Button onClick={handleSubmit}>
                                 Save
                             </Button>
                         </Dialog.Footer>

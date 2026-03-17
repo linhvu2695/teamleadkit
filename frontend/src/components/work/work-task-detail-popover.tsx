@@ -24,6 +24,7 @@ import {
     FaSyncAlt,
 } from "react-icons/fa";
 import { BASE_URL } from "@/App";
+import { fetchWithLinkAuth } from "@/lib/work-api";
 import { toaster } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { TaskDetail } from "./work-types";
@@ -63,7 +64,7 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
-            const res = await fetch(`${BASE_URL}/api/work/task/${task.identifier}?force_refresh=true`);
+            const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/task/${task.identifier}?force_refresh=true`);
             if (!res.ok) throw new Error("Failed to refresh task");
             const updatedTask: TaskDetail = await res.json();
             updateTask(updatedTask);

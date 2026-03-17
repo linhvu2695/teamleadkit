@@ -2,6 +2,7 @@ import { Box, HStack, VStack, IconButton } from "@chakra-ui/react";
 import { useEffect, useState, useCallback } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { BASE_URL } from "@/App";
+import { fetchWithLinkAuth } from "@/lib/work-api";
 import {
     TeamFilterPanel,
     TeamIncompleteTasksContent,
@@ -35,7 +36,7 @@ const TeamPageContent = () => {
             const params = new URLSearchParams();
             for (const t of types) params.append("subtypes", t.toLowerCase());
             if (forceRefresh) params.append("force_refresh", "true");
-            const res = await fetch(`${BASE_URL}/api/work/team/workload?${params}`);
+            const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/team/workload?${params}`);
             if (res.ok) setWorkload(await res.json());
         } catch (err) {
             console.error("Failed to fetch team workload:", err);

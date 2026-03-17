@@ -22,9 +22,6 @@ LINK_URL = "https://link.orangelogic.com"
 LINK_SEARCH_API_URL = f"{LINK_URL}/API/Search/v4.0/Search"
 COUNT_PER_PAGE = 300
 
-LINK_ACCESS_TOKEN_URL = f"{LINK_URL}/api/Authentication/v1.0/AccessToken"
-LINK_AUTH_TOKEN_CACHE_KEY = "work:link:auth_token"
-LINK_AUTH_TOKEN_TTL = 86400  # 1 day
 
 
 class WorkService:
@@ -40,7 +37,9 @@ class WorkService:
     # Public methods
     # -------------------------------------------------------------------------
 
-    async def get_task_detail(self, task_id: str, force_refresh: bool = False) -> TaskDetail | None:
+    async def get_task_detail(
+        self, task_id: str, force_refresh: bool = False, link_auth_token: str | None = None
+    ) -> TaskDetail | None:
         db = Database()
 
         if not force_refresh:
@@ -48,23 +47,29 @@ class WorkService:
             if docs:
                 return TaskDetail(**docs[0])
 
-        task_detail = await self._fetch_task_from_api(task_id)
+        task_detail = await self._fetch_task_from_api(task_id, link_auth_token)
         if task_detail is None:
             return None
 
         await self._upsert_task(task_detail)
         return task_detail
 
-    async def get_descendants_tasks(self, task_id: str, force_refresh: bool = False) -> list[TaskDetail]:
+    async def get_descendants_tasks(
+        self, task_id: str, force_refresh: bool = False, link_auth_token: str | None = None
+    ) -> list[TaskDetail]:
         if not force_refresh:
             descendants = await self._get_descendants_from_db(task_id)
             if descendants:
                 return descendants
 
-        return await self._fetch_and_store_descendants(task_id)
+        return await self._fetch_and_store_descendants(task_id, link_auth_token)
 
     async def get_incomplete_tasks_assigned_to(
-        self, assignee: str, subtypes: list[TaskType] = [], force_refresh: bool = False
+        self,
+        assignee: str,
+        subtypes: list[TaskType] = [],
+        force_refresh: bool = False,
+        link_auth_token: str | None = None,
     ) -> list[TaskDetail] | None:
         cache = InMemoryCache()
         types_to_fetch = list(TaskType) if not subtypes else subtypes
@@ -96,7 +101,7 @@ class WorkService:
             string_subtypes = [f"\"{s.value}\"" for s in subtypes]
             query += f" AND DocSubType:({' OR '.join(string_subtypes)})"
 
-        results = await self._query_tasks_from_api(query)
+        results = await self._query_tasks_from_api(query, link_auth_token)
         if not results:
             for t in types_to_fetch:
                 await cache.set(
@@ -134,6 +139,7 @@ class WorkService:
         start_date: datetime | None = None,
         end_date: datetime | None = None,
         force_refresh: bool = False,
+        link_auth_token: str | None = None,
     ) -> list[TaskDetail] | None:
         db = Database()
 
@@ -175,7 +181,7 @@ class WorkService:
             end_iso = end_date.strftime("%Y-%m-%d")
             query += f" AND Completiondate<:{end_iso}"
 
-        results = await self._query_tasks_from_api(query) or []
+        results = await self._query_tasks_from_api(query, link_auth_token) or []
         if not results:
             return []
 
@@ -184,36 +190,53 @@ class WorkService:
 
         return results
 
-    async def get_emergency_stream(self, assignee: str) -> DocumentDetail | None:
+    async def get_emergency_stream(
+        self, assignee: str, link_auth_token: str | None = None
+    ) -> DocumentDetail | None:
         query = f'DocSubType:Stream AND Title:"{assignee} Emergency"'
-        results = await self._query_docs_from_api(query)
+        results = await self._query_docs_from_api(query, link_auth_token)
         if results is not None and len(results) == 1:
             return results[0]
 
         first_name = assignee.split(" ")[0]
         query = f'DocSubType:Stream AND Title:"{first_name} Emergency"'
-        results = await self._query_docs_from_api(query)
+        results = await self._query_docs_from_api(query, link_auth_token)
         if results is not None and len(results) == 1:
             return results[0]
 
         return None
 
-    async def get_emergency_incomplete_tasks(self, assignee: str) -> list[TaskDetail] | None:
-        stream = await self.get_emergency_stream(assignee)
+    async def get_emergency_incomplete_tasks(
+        self, assignee: str, link_auth_token: str | None = None
+    ) -> list[TaskDetail] | None:
+        stream = await self.get_emergency_stream(assignee, link_auth_token)
         if stream is None:
             return None
         if is_empty_string(stream.identifier):
             return None
 
         query = f'ParentAlbumIdentifier:{stream.identifier} AND NOT (WorkflowStatus:({" OR ".join(COMPLETE_STATUSES)}))'
-        results = await self._query_tasks_from_api(query)
+        results = await self._query_tasks_from_api(query, link_auth_token)
         if results is not None:
             return results
         return None
 
-    async def get_team_workload(self, subtypes: list[TaskType] = [], force_refresh: bool = False) -> list[dict]:
+    async def get_team_workload(
+        self,
+        subtypes: list[TaskType] = [],
+        force_refresh: bool = False,
+        link_auth_token: str | None = None,
+    ) -> list[dict]:
         async def fetch_member(name: str) -> dict:
-            tasks = await self.get_incomplete_tasks_assigned_to(name, subtypes=subtypes, force_refresh=force_refresh) or []
+            tasks = (
+                await self.get_incomplete_tasks_assigned_to(
+                    name,
+                    subtypes=subtypes,
+                    force_refresh=force_refresh,
+                    link_auth_token=link_auth_token,
+                )
+                or []
+            )
             return {
                 "name": name,
                 "tasks": [t.model_dump() for t in tasks],
@@ -228,15 +251,20 @@ class WorkService:
         end_date: datetime | None = None,
         subtypes: list[TaskType] = [],
         force_refresh: bool = False,
+        link_auth_token: str | None = None,
     ) -> list[dict]:
         async def fetch_member(name: str) -> dict:
-            tasks = await self.get_completed_tasks_assigned_to(
-                name,
-                subtypes=subtypes,
-                start_date=start_date,
-                end_date=end_date,
-                force_refresh=force_refresh,
-            ) or []
+            tasks = (
+                await self.get_completed_tasks_assigned_to(
+                    name,
+                    subtypes=subtypes,
+                    start_date=start_date,
+                    end_date=end_date,
+                    force_refresh=force_refresh,
+                    link_auth_token=link_auth_token,
+                )
+                or []
+            )
             return {
                 "name": name,
                 "tasks": [t.model_dump() for t in tasks],
@@ -245,9 +273,9 @@ class WorkService:
         results = await asyncio.gather(*(fetch_member(name) for name in TEAM_MEMBERS))
         return sorted(results, key=lambda r: len(r["tasks"]), reverse=True)
 
-    async def get_team_emergency(self) -> list[dict]:
+    async def get_team_emergency(self, link_auth_token: str | None = None) -> list[dict]:
         async def fetch_member(name: str) -> dict | None:
-            tasks = await self.get_emergency_incomplete_tasks(name)
+            tasks = await self.get_emergency_incomplete_tasks(name, link_auth_token)
             if tasks is None:
                 return None
             return {
@@ -270,10 +298,6 @@ class WorkService:
             return False
         await db.update_document_by_identifier(TASK_COLLECTION_NAME, task_id, {"monitor": monitor})
         return True
-
-    async def set_link_auth_token(self, token: str) -> None:
-        cache = InMemoryCache()
-        await cache.set(LINK_AUTH_TOKEN_CACHE_KEY, token, expiration=LINK_AUTH_TOKEN_TTL)
 
     # -------------------------------------------------------------------------
     # Private methods
@@ -298,8 +322,10 @@ class WorkService:
 
         return descendants
 
-    async def _fetch_and_store_descendants(self, task_id: str) -> list[TaskDetail]:
-        descendants = await self._fetch_descendants_tasks_from_api(task_id)
+    async def _fetch_and_store_descendants(
+        self, task_id: str, link_auth_token: str | None = None
+    ) -> list[TaskDetail]:
+        descendants = await self._fetch_descendants_tasks_from_api(task_id, link_auth_token)
         if not descendants:
             return []
 
@@ -320,25 +346,18 @@ class WorkService:
             document["created_at"] = datetime.now(timezone.utc).isoformat()
             await db.insert_document(TASK_COLLECTION_NAME, document)
 
-    async def _get_auth_token_from_cache(self) -> str | None:
-        cache = InMemoryCache()
-        cached = await cache.get(LINK_AUTH_TOKEN_CACHE_KEY)
-        return cached if cached else None
-
-    async def _refresh_auth_token(self, current_token: str) -> str | None:
-        raise NotImplementedError("Not implemented")
-
-    async def _query_docs_from_api(self, query: str, retry_on_401: bool = True) -> list[DocumentDetail] | None:
-        token = await self._get_auth_token_from_cache()
-        if token is None:
-            self.logger.error("Link API 401: no token found, request aborted")
+    async def _query_docs_from_api(
+        self, query: str, link_auth_token: str | None = None
+    ) -> list[DocumentDetail] | None:
+        if not link_auth_token:
+            self.logger.error("Link API: no auth token provided, request aborted")
             return None
 
         params = {
             "query": query,
             "fields": DOC_DETAIL_FIELDS,
             "format": "JSON",
-            "token": token,
+            "token": link_auth_token,
             "countperpage": COUNT_PER_PAGE,
         }
 
@@ -358,18 +377,17 @@ class WorkService:
             return None
 
     async def _query_tasks_from_api(
-        self, query: str, retry_on_401: bool = True
+        self, query: str, link_auth_token: str | None = None
     ) -> list[TaskDetail] | None:
-        token = await self._get_auth_token_from_cache()
-        if token is None:
-            self.logger.error("Link API 401: no token found, request aborted")
+        if not link_auth_token:
+            self.logger.error("Link API: no auth token provided, request aborted")
             return None
 
         params = {
             "query": f"({query}) AND DocType:Project",
             "fields": TASK_DETAIL_FIELDS,
             "format": "JSON",
-            "token": token,
+            "token": link_auth_token,
             "countperpage": COUNT_PER_PAGE,
         }
 
@@ -400,14 +418,22 @@ class WorkService:
             self.logger.error(f"Failed to reach Link API for query {query}: {e}")
             return None
 
-    async def _fetch_task_from_api(self, task_id: str) -> TaskDetail | None:
-        results = await self._query_tasks_from_api(f"SystemIdentifier:{task_id}")
+    async def _fetch_task_from_api(
+        self, task_id: str, link_auth_token: str | None = None
+    ) -> TaskDetail | None:
+        results = await self._query_tasks_from_api(
+            f"SystemIdentifier:{task_id}", link_auth_token
+        )
         if not results:
             return None
         return results[0] if len(results) > 0 else None
 
-    async def _fetch_descendants_tasks_from_api(self, task_id: str) -> list[TaskDetail] | None:
-        results = await self._query_tasks_from_api(f"ParentFolderIdentifier:{task_id}")
+    async def _fetch_descendants_tasks_from_api(
+        self, task_id: str, link_auth_token: str | None = None
+    ) -> list[TaskDetail] | None:
+        results = await self._query_tasks_from_api(
+            f"ParentFolderIdentifier:{task_id}", link_auth_token
+        )
         if not results:
             return None
         return results

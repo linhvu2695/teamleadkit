@@ -18,6 +18,7 @@ import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { BASE_URL } from "@/App";
+import { fetchWithLinkAuth } from "@/lib/work-api";
 import type { MemberWorkload } from "./team-types";
 import { MEMBER_COLORS, memberTaskCount, memberTimeSpentMn } from "./team-types";
 import { getModulePieData } from "./team-utils";
@@ -50,7 +51,7 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                 params.set("end_date", end);
                 for (const t of selectedTypes) params.append("subtypes", t.toLowerCase());
                 if (refresh) params.set("force_refresh", "true");
-                const res = await fetch(`${BASE_URL}/api/work/team/completed-workload?${params}`);
+                const res = await fetchWithLinkAuth(`${BASE_URL}/api/work/team/completed-workload?${params}`);
                 if (res.ok) setWorkload(await res.json());
             } catch (err) {
                 toaster.create({ description: "Failed to fetch completed workload", type: "error" });
