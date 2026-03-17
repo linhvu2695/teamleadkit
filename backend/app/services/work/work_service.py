@@ -401,13 +401,23 @@ class WorkService:
             return None
 
     async def _fetch_task_from_api(self, task_id: str) -> TaskDetail | None:
+        task_id = self._add_prefix_to_task_id_if_needed(task_id)
+
         results = await self._query_tasks_from_api(f"SystemIdentifier:{task_id}")
         if not results:
             return None
         return results[0] if len(results) > 0 else None
 
     async def _fetch_descendants_tasks_from_api(self, task_id: str) -> list[TaskDetail] | None:
+        task_id = self._add_prefix_to_task_id_if_needed(task_id)
+        
         results = await self._query_tasks_from_api(f"ParentFolderIdentifier:{task_id}")
         if not results:
             return None
         return results
+
+    def _add_prefix_to_task_id_if_needed(self, task_id: str) -> str:
+        if len(task_id) == 5:
+            self.logger.warning(f"Task ID {task_id} is too short, adding 'L-' prefix")
+            return f"L-{task_id}"
+        return task_id
