@@ -443,7 +443,7 @@ class WorkService:
         return results
 
     def _add_prefix_to_task_id_if_needed(self, task_id: str) -> str:
-        if len(task_id) == 5:
+        if len(task_id) == 6:
             self.logger.warning(f"Task ID {task_id} is too short, adding 'L-' prefix")
             return f"L-{task_id}"
         return task_id
