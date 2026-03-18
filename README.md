@@ -12,9 +12,19 @@ A local dashboard that connects to Orange Logic Link to give you visibility into
 
 ![Team View](public/TeamView01.png)
 
-Everything runs on your machine. No Docker, no database servers, no DevOps required.
+Everything runs on your machine. No database servers, no DevOps required.
 
 ## Setup
+
+### Option A: Docker (recommended)
+
+```bash
+docker compose up --build
+```
+
+Then open [http://localhost:3000](http://localhost:3000). Task data is persisted in a Docker volume.
+
+### Option B: Run natively
 
 You need **Node.js** (>= 18) and **Python** (3.11+).
 
@@ -24,7 +34,7 @@ If you use pyenv, the repo will auto-select the right Python version. If you don
 pyenv install 3.11.9
 ```
 
-### 1. Start the backend
+#### 1. Start the backend
 
 ```bash
 cd backend
@@ -32,7 +42,7 @@ make setup   # first time only — creates virtual env, installs dependencies
 make run     # starts the server on port 8000
 ```
 
-### 2. Start the frontend
+#### 2. Start the frontend
 
 ```bash
 cd frontend
@@ -40,7 +50,7 @@ npm install   # first time only
 npm run dev   # opens on port 3000
 ```
 
-### 3. Set your Link API token
+#### 3. Set your Link API token
 
 Open [http://localhost:3000](http://localhost:3000), click the **gear icon** (top-left), then **Set Link Auth Token** and paste your Orange Logic token. It stays in memory and expires after 24 hours — you'll need to re-enter it the next day.
 
