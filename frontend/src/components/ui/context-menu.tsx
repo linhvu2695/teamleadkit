@@ -25,10 +25,11 @@ export const ContextMenu = ({ children, content }: ContextMenuProps) => {
             </Box>
             <Menu.Positioner>
                 <Menu.Content
-                    bg={{ base: "white", _dark: "gray.800" }}
+                    bg={{ base: "white/95", _dark: "gray.800/95" }}
+                    backdropBlur="sm"
                     borderRadius="md"
                     borderWidth="1px"
-                    borderColor={{ base: "gray.200", _dark: "gray.600" }}
+                    borderColor={{ base: "gray.200/60", _dark: "gray.600/60" }}
                     boxShadow="lg"
                     py={1}
                     minW="160px"
