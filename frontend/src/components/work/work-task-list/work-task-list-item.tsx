@@ -10,6 +10,9 @@ import { FaTimes } from "react-icons/fa";
 import type { TaskDetail } from "../work-types";
 import { statusColor, docSubTypeIcon } from "../work-utils";
 import { useWorkContext } from "@/context/work-ctx";
+import { ContextMenu } from "@/components/ui/context-menu";
+import { ContextMenuItem } from "@/components/ui/context-menu-actions";
+import { HiArrowPath } from "react-icons/hi2";
 
 interface WorkTaskListItemProps {
     task: TaskDetail;
@@ -17,10 +20,26 @@ interface WorkTaskListItemProps {
 }
 
 export const WorkTaskListItem = ({ task, isSelected }: WorkTaskListItemProps) => {
-    const { selectTask, removeTask } = useWorkContext();
+    const { selectTask, removeTask, refreshTaskTree } = useWorkContext();
     const { icon: docIcon, color: docIconColor } = docSubTypeIcon(task.doc_sub_type);
 
     return (
+        <ContextMenu
+            content={
+                <>
+                    <ContextMenuItem
+                        icon={HiArrowPath}
+                        text="Refresh"
+                        onSelect={() => refreshTaskTree(task.identifier)}
+                    />
+                    <ContextMenuItem
+                        icon={FaTimes}
+                        text="Remove"
+                        onSelect={() => removeTask(task.identifier)}
+                    />
+                </>
+            }
+        >
         <HStack
             px={3}
             py={2}
@@ -94,19 +113,7 @@ export const WorkTaskListItem = ({ task, isSelected }: WorkTaskListItemProps) =>
                     </Text>
                 </Box>
             )}
-
-            {/* Remove task button */}
-            <IconButton
-                aria-label="Remove task"
-                variant="ghost"
-                size="2xs"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    removeTask(task.identifier);
-                }}
-            >
-                <FaTimes />
-            </IconButton>
         </HStack>
+        </ContextMenu>
     );
 };

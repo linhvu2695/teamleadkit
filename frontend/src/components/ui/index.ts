@@ -1,4 +1,6 @@
 export { ColorModeProvider, useColorMode } from "./color-mode";
+export { ContextMenu } from "./context-menu";
+export { ContextMenuItem, type ContextMenuItemProps } from "./context-menu-actions";
 export { Provider } from "./provider";
 export { toaster } from "./toaster";
 export { Tooltip } from "./tooltip";
