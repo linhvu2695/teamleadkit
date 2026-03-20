@@ -3,7 +3,6 @@ import {
     VStack,
     HStack,
     Text,
-    IconButton,
     Badge,
 } from "@chakra-ui/react";
 import { FaTimes } from "react-icons/fa";
