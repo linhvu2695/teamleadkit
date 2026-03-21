@@ -177,7 +177,7 @@ export const TeamIncompleteTasksContent = ({
                                 >
                                     <HStack gap={1}>
                                         <HiOutlineExclamationTriangle />
-                                        <Text as="span">Emergency Stream</Text>
+                                        <Text as="span">Emergency</Text>
                                     </HStack>
                                 </Button>
                             </Tooltip>
